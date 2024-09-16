@@ -1,15 +1,17 @@
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView
 from django.urls import reverse
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from .models import News, Comment
 from .forms import CommentForm
+
 
 class NewsListView(ListView):
     model = News
     template_name = 'news/news_list.html'
     context_object_name = 'news_list'
     ordering = ['-created_at']
+
 
 class NewsDetailView(DetailView):
     model = News
@@ -21,6 +23,16 @@ class NewsDetailView(DetailView):
         context['comments'] = Comment.objects.filter(news=self.object).order_by('-created_at')
         context['form'] = CommentForm()
         return context
+
+    def post(self, request, *args, **kwargs):
+        news = self.get_object()
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.news = news
+            comment.save()
+        return redirect('news-detail', pk=news.pk)
+
 
 class NewsCreateView(CreateView):
     model = News
